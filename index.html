@@ -89,7 +89,34 @@ function redirect() {
     if (redirected || reuseConfirmed) return;
 
     redirected = true;
-    location.replace(PROJECT_URL);
+
+    // Stage 9D.6G.2G.19
+    // Redirect to the existing BPA Assembly Navigator
+    // launcher instead of directly opening the 3D Viewer.
+
+    const launcherUrl = new URL(
+        "https://jordanf-bpa.github.io/BPA-Assembly-Navigator/launch/"
+    );
+
+    launcherUrl.searchParams.set(
+        "teklaGuid",
+        teklaGuid
+    );
+
+    launcherUrl.searchParams.set(
+        "ifcGuid",
+        ifcGuid
+    );
+
+    launcherUrl.searchParams.set(
+        "projectKey",
+        PROJECT_KEY
+    );
+
+    status.textContent =
+        "Opening BPA Assembly Navigator launcher...";
+
+    location.replace(launcherUrl.href);
 }
 
             // Prefer confirmed Chrome Bridge capture.
