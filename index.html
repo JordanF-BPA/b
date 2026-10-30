@@ -85,6 +85,51 @@
 let redirected = false;
 let reuseConfirmed = false;
 
+// Stage 9D.6G.2G.23B
+const reuseChannel = new BroadcastChannel(
+    "BPA_ASSEMBLY_NAVIGATOR_REUSE"
+);
+
+const reuseRequestId = crypto.randomUUID();
+
+reuseChannel.addEventListener("message", function (event) {
+    const data = event.data;
+
+    if (
+        !data ||
+        data.type !== "BPA_REUSE_ACCEPTED" ||
+        data.requestId !== reuseRequestId
+    ) {
+        return;
+    }
+
+    reuseConfirmed = true;
+
+    status.textContent =
+        "Existing BPA Launcher found. " +
+        "Assembly sent to Trimble Connect.";
+
+    // Chrome may block closing tabs that were
+    // opened directly by the user or PDF viewer.
+    window.close();
+
+    // Fallback if automatic closing is not permitted.
+    setTimeout(() => {
+        status.textContent =
+            "Assembly sent to existing Trimble Connect tab. " +
+            "You can close this temporary tab.";
+    }, 500);
+});
+
+// Ask any existing launcher to handle this assembly.
+reuseChannel.postMessage({
+    type: "BPA_REUSE_REQUEST",
+    requestId: reuseRequestId,
+    teklaGuid,
+    ifcGuid,
+    projectKey: PROJECT_KEY
+});
+
 function redirect() {
     if (redirected || reuseConfirmed) return;
 
