@@ -1,45 +1,44 @@
-
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>BPA Navigator Launch</title>
-</head>
-<body>
-    <p id="status">Preparing BPA Assembly Navigator...</p>
+	<head>
+		<meta charset="utf-8">
+			<title>BPA Navigator Launch</title>
+		</head>
+	<body>
+		<p id="status">Preparing BPA Assembly Navigator...</p>
 
-    <script>
-    (() => {
-        "use strict";
+		<script>
+			(() => {
+			"use strict";
 
-        const ALPHABET =
-            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-            "abcdefghijklmnopqrstuvwxyz_$";
+			const ALPHABET =
+			"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+			"abcdefghijklmnopqrstuvwxyz_$";
 
-        const PROJECT_URL =
-            "https://web.connect.trimble.com/projects/" +
-            "l7enVCZktZA/viewer/3d/?modelId=LPDL2Rmxp1E";
+			const PROJECT_URL =
+			"https://web.connect.trimble.com/projects/" +
+			"l7enVCZktZA/viewer/3d/?modelId=LPDL2Rmxp1E";
 
-        const PROJECT_KEY = "test-project";
+			const PROJECT_KEY = "test-project";
 
-        const ifcGuid =
-            new URLSearchParams(location.search).get("g") || "";
+			const ifcGuid =
+			new URLSearchParams(location.search).get("g") || "";
 
-        const status = document.getElementById("status");
+			const status = document.getElementById("status");
 
-        function decodeIfcGuid(value) {
-            if (!/^[A-Za-z0-9_$]{22}$/.test(value) ||
-                ALPHABET.indexOf(value[0]) > 3) {
-                throw new Error("Invalid IFC GUID.");
-            }
+			function decodeIfcGuid(value) {
+			if (!/^[A-Za-z0-9_$]{22}$/.test(value) ||
+			ALPHABET.indexOf(value[0]) > 3) {
+			throw new Error("Invalid IFC GUID.");
+			}
 
-            let hex = "";
-            let offset = 0;
+			let hex = "";
+			let offset = 0;
 
-            for (const size of [2, 4, 4, 4, 4, 4]) {
-                let number = 0;
+			for (const size of [2, 4, 4, 4, 4, 4]) {
+			let number = 0;
 
-                for (let i = 0; i < size; i++) {
+			for (let i = 0; i < size; i++) {
                     const digit = ALPHABET.indexOf(
                         value[offset++]
                     );
@@ -83,13 +82,15 @@
                 projectKey: PROJECT_KEY
             };
 
-            let redirected = false;
+let redirected = false;
+let reuseConfirmed = false;
 
-            function redirect() {
-                if (redirected) return;
-                redirected = true;
-                location.replace(PROJECT_URL);
-            }
+function redirect() {
+    if (redirected || reuseConfirmed) return;
+
+    redirected = true;
+    location.replace(PROJECT_URL);
+}
 
             // Prefer confirmed Chrome Bridge capture.
             window.addEventListener("message", event => {
@@ -100,9 +101,19 @@
                     return;
                 }
 
-                status.textContent =
-                    "Opening Trimble Connect...";
-                redirect();
+if (event.data.reusedTab === true) {
+    reuseConfirmed = true;
+
+    status.textContent =
+        "Existing Trimble Connect tab found.";
+
+    return;
+}
+
+status.textContent =
+    "Opening Trimble Connect...";
+
+redirect();
             });
 
             // Let the Chrome Bridge read the validated request.
@@ -114,13 +125,17 @@
             // Allow normal project opening if the extension
             // is unavailable, while keeping the page visible
             // long enough for the Bridge to capture the GUID.
-            setTimeout(redirect, 3000);
+            setTimeout(() => {
+    if (!reuseConfirmed) {
+        redirect();
+    }
+}, 3000);
 
         } catch (error) {
             status.textContent =
                 "Invalid BPA drawing link: " + error.message;
         }
     })();
-    </script>
-</body>
+		</script>
+	</body>
 </html>
