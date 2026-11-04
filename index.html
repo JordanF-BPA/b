@@ -30,7 +30,12 @@
                     return;
                 }
                 const launcher = new URL("../BPA-Assembly-Navigator/launch/", location.href);
-                launcher.search = new URLSearchParams({p: position, q: quantity, projectKey: PROJECT_KEY});
+                const target = new URLSearchParams({p: position, q: quantity});
+                if (params.has("j") || params.has("m")) {
+                    target.set("j", params.get("j") || "");
+                    target.set("m", params.get("m") || "");
+                } else target.set("projectKey", PROJECT_KEY);
+                launcher.search = target;
                 location.replace(launcher.href);
                 return;
             }
