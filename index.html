@@ -31,12 +31,60 @@
                 }
                 const launcher = new URL("../BPA-Assembly-Navigator/launch/", location.href);
                 const target = new URLSearchParams({p: position, q: quantity});
+                const request = {
+                    type: "BPA_REUSE_REQUEST", position, quantity,
+                    projectKey: PROJECT_KEY
+                };
                 if (params.has("j") || params.has("m")) {
-                    target.set("j", params.get("j") || "");
-                    target.set("m", params.get("m") || "");
+                    request.projectId = params.get("j") || "";
+                    request.modelId = params.get("m") || "";
+                    if (!/^[A-Za-z0-9_-]{1,64}$/.test(request.projectId) ||
+                        !/^[A-Za-z0-9_-]{1,64}$/.test(request.modelId)) {
+                        document.getElementById("status").textContent = "Invalid project or model ID.";
+                        return;
+                    }
+                    target.set("j", request.projectId);
+                    target.set("m", request.modelId);
                 } else target.set("projectKey", PROJECT_KEY);
                 launcher.search = target;
-                location.replace(launcher.href);
+
+                // Hand off from this lightweight page before loading the full launcher.
+                // No Chrome Bridge is involved. The receiver checks project AND model.
+                let finished = false;
+                let channel;
+                let retryTimer;
+                let fallbackTimer;
+                function cleanup() {
+                    clearTimeout(retryTimer);
+                    clearTimeout(fallbackTimer);
+                    if (channel) channel.close();
+                }
+                function launch() {
+                    if (finished) return;
+                    finished = true;
+                    cleanup();
+                    location.replace(launcher.href);
+                }
+                try {
+                    request.requestId = crypto.randomUUID();
+                    channel = new BroadcastChannel("BPA_ASSEMBLY_NAVIGATOR_REUSE");
+                    channel.addEventListener("message", event => {
+                        if (finished || event.data?.type !== "BPA_REUSE_ACCEPTED" ||
+                            event.data.requestId !== request.requestId) return;
+                        finished = true;
+                        cleanup();
+                        document.getElementById("status").textContent =
+                            "Assembly sent to the existing Trimble Connect tab. You can close this temporary tab.";
+                        window.close();
+                    });
+                    channel.postMessage(request);
+                    retryTimer = setTimeout(() => {
+                        if (!finished) channel.postMessage(request);
+                    }, 600);
+                    fallbackTimer = setTimeout(launch, 1500);
+                } catch {
+                    launch();
+                }
                 return;
             }
 
