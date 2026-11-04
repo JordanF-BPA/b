@@ -21,7 +21,21 @@
 
 			const PROJECT_KEY = "test-project";
 
-			const ifcGuid =
+			const params = new URLSearchParams(location.search);
+            if (params.has("p")) {
+                const position = params.get("p");
+                const quantity = params.get("q");
+                if (!position.trim() || position.length > 79 || !/^[1-9]\d{0,8}$/.test(quantity)) {
+                    document.getElementById("status").textContent = "Invalid assembly position or quantity.";
+                    return;
+                }
+                const launcher = new URL("../BPA-Assembly-Navigator/launch/", location.href);
+                launcher.search = new URLSearchParams({p: position, q: quantity, projectKey: PROJECT_KEY});
+                location.replace(launcher.href);
+                return;
+            }
+
+            const ifcGuid =
 			new URLSearchParams(location.search).get("g") || "";
 
 			const status = document.getElementById("status");
